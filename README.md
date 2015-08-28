@@ -1,3 +1,6 @@
+# Schwarzie
+Schwarzie is an ellie-slack bot reading from users's input in order to learn words, sentences and, maybe one day, be able to talk autonomously. The idea is that chatbot are usually quickly boring because answers are pre-formatted, thus learning from actual people chatting may improve the quality of answers. On the other hand, it's a practical exercise on programming (text-processing) neural networks, which is a current active field of research.
+
 # ellie-slack
 Meet Ellie, Eliza's younger, hipper, psychobabble-friendly successor. She makes a great Slackbot.
 

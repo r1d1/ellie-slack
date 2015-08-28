@@ -60,6 +60,7 @@ class RtmBot(object):
 		for char in data['text']:
 			print self.textProc.char2val(char),
 		print ""
+		# For now, just printing the active inputs :
 		for word in data['text'].split():
 			self.wordLengths.append(len(word))
 			with open(self.wordLengthsFile, 'a') as of:
