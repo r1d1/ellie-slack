@@ -12,6 +12,11 @@ import time
 import logging
 
 from slackclient import SlackClient
+# Erwan addition :
+import numpy as np
+from textProcessing import TextProcessing
+from neuralNet import NeuralNet
+import datetime
 
 def dbg(debug_string):
     if debug:
@@ -22,6 +27,12 @@ class RtmBot(object):
         self.token = token
         self.bot_plugins = []
         self.slack_client = None
+	self.textProc = TextProcessing()
+	self.wordLengths = []
+	now = datetime.datetime.now()
+	self.wordLengthsFile = "log_wordLengths"+str(now.year)+str(now.month)+str(now.day)+str(now.hour)+str(now.minute)+".txt"
+	print self.wordLengthsFile
+
     def connect(self):
         """Convenience method that creates Server instance"""
         self.slack_client = SlackClient(self.token)
@@ -36,12 +47,24 @@ class RtmBot(object):
             self.output()
             time.sleep(.1)
     def input(self, data):
+    	#print "Read something :",data
         if "type" in data:
             function_name = "process_" + data["type"]
             dbg("got {}".format(function_name))
             for plugin in self.bot_plugins:
                 plugin.register_jobs()
                 plugin.do(function_name, data)
+	    if data['type'] == 'message' and ("text" in data) and ("user" in data):
+	    	print data['user'],":",data['text']
+		# Process input for NN
+		for char in data['text']:
+			print self.textProc.char2val(char),
+		print ""
+		for word in data['text'].split():
+			self.wordLengths.append(len(word))
+			with open(self.wordLengthsFile, 'a') as of:
+			    of.write(str(len(word))+'\n')
+			
     def output(self):
         for plugin in self.bot_plugins:
             limiter = False
@@ -52,7 +75,9 @@ class RtmBot(object):
                         time.sleep(1)
                         limiter = False
                     message = output[1].encode('ascii','ignore')
-                    channel.send_message("{}".format(message))
+		    # Erwan : Probabilistic output :
+		    if np.random.rand() < 0.1:
+		    	channel.send_message("{}".format(message))
                     limiter = True
     def crons(self):
         for plugin in self.bot_plugins:
