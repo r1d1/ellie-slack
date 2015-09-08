@@ -57,10 +57,10 @@ class RtmBot(object):
 	    if data['type'] == 'message' and ("text" in data) and ("user" in data):
 	    	print data['user'],":",data['text']
 		# Process input for NN
+		# For now, just printing the active inputs :
 		for char in data['text']:
 			print self.textProc.char2val(char),
 		print ""
-		# For now, just printing the active inputs :
 		for word in data['text'].split():
 			self.wordLengths.append(len(word))
 			with open(self.wordLengthsFile, 'a') as of:
@@ -77,7 +77,7 @@ class RtmBot(object):
                         limiter = False
                     message = output[1].encode('ascii','ignore')
 		    # Erwan : Probabilistic output :
-		    if np.random.rand() < 0.1:
+		    if np.random.rand() < 0.01:
 		    	channel.send_message("{}".format(message))
                     limiter = True
     def crons(self):
@@ -90,6 +90,7 @@ class RtmBot(object):
         for plugin in glob.glob(directory+'/plugins/*.py') + glob.glob(directory+'/plugins/*/*.py'):
             logging.info(plugin)
             name = plugin.split('/')[-1][:-3]
+	    print "Plugin loaded:",name
 #            try:
             self.bot_plugins.append(Plugin(name))
 #            except:

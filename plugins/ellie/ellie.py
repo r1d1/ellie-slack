@@ -6,16 +6,22 @@ import eliza
 
 rules = {
     "?*x hey ?*y": [
-        "Hey! I'm Ellie."
+        "Hey! I'm Schwarzie."
         ],
     "?*x hi ?*y": [
-        "Hi! I'm Ellie."
+        "Hi! I'm Schwarzie."
         ],
     "?*x hello ?*y": [
-        "Hello there. I'm Ellie."
+        "Hello there. I'm Schwarzie."
         ],
     "?*x yo ?*y": [
         "yo."
+        ],
+    "?*x fuck ?*y": [
+        "That was rude, man."
+        ],
+    "?*x shit ?*y": [
+        "Stop saying that much crap."
         ],
     "?*x how are ?*y": [
         "How so?",
@@ -46,10 +52,13 @@ rules = {
     "?*x Joseph Weizenbaum, ?*y": [
         "Yeah, he's kindof my grandfather. I owe him a lot.",
         ],
+    "?*x bot, ?*y": [
+        "I'm not a Terminator.",
+        ],
     "?*x slackbot ?*y": [
         "He's my cousin.",
         "If you want to talk to Slackbot, switch channels.",
-        "I'm not a Slackbot! I'm Ellie.",
+        "I'm not a Slackbot! I'm Schwarzie.",
         ],
     "?*x slack ?*y": [
         "I like them.",
