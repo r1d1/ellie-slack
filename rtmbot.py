@@ -18,6 +18,9 @@ from textProcessing import TextProcessing
 from neuralNet import NeuralNet
 import datetime
 
+# Ugly global definition of wordLength
+wordLength = 20
+
 def dbg(debug_string):
     if debug:
         logging.info(debug_string)
@@ -28,6 +31,9 @@ class RtmBot(object):
         self.bot_plugins = []
         self.slack_client = None
 	self.textProc = TextProcessing()
+	self.layerLength = self.textProc.maxChar-self.textProc.minChar
+	externalSize = self.layerLength*wordLength
+	self.neuralnet = NeuralNet(externalSize, externalSize, externalSize / 2 )
 	self.wordLengths = []
 	now = datetime.datetime.now()
 	self.wordLengthsFile = "log_wordLengths"+str(now.year)+str(now.month)+str(now.day)+str(now.hour)+str(now.minute)+".txt"
@@ -62,10 +68,29 @@ class RtmBot(object):
 			print self.textProc.char2val(char),
 		print ""
 		for word in data['text'].split():
+			# Build array input
+			inputvec = [0.0 for i in range(len(self.neuralnet.inputLayer))]
+			counter = 0
+			for letter in word:
+				try:
+					inputvec[counter*self.layerLength + self.textProc.char2val(letter)] = 1.0
+				except IndexError:
+					print "Didn't get "+letter
+				counter += 1
 			self.wordLengths.append(len(word))
 			with open(self.wordLengthsFile, 'a') as of:
 			    of.write(str(len(word))+'\n')
-			
+			# Send to network :
+			print word
+			#print inputvec, word
+			self.neuralnet.inputData(inputvec)
+			self.neuralnet.computeOutput()
+			answer=""
+			for letter in range(wordLength):
+				answer += self.textProc.vec2char(self.neuralnet.outputLayer_f[letter*wordLength:(letter+1)*wordLength].tolist())
+			# Generate answer (which is way more tricky)
+			print answer
+
     def output(self):
         for plugin in self.bot_plugins:
             limiter = False
@@ -77,7 +102,9 @@ class RtmBot(object):
                         limiter = False
                     message = output[1].encode('ascii','ignore')
 		    # Erwan : Probabilistic output :
-		    if np.random.rand() < 0.01:
+		    probOfSpeech=np.random.rand()
+		    if probOfSpeech < 0.01:
+		    	print probOfSpeech
 		    	channel.send_message("{}".format(message))
                     limiter = True
     def crons(self):
