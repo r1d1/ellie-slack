@@ -35,6 +35,7 @@ class RtmBot(object):
 	externalSize = self.layerLength*wordLength
 	self.neuralnet = NeuralNet(externalSize, externalSize, externalSize / 2 )
 	self.wordLengths = []
+	self.errorEvolution=[]
 	now = datetime.datetime.now()
 	self.wordLengthsFile = "log_wordLengths"+str(now.year)+str(now.month)+str(now.day)+str(now.hour)+str(now.minute)+".txt"
 	print self.wordLengthsFile
@@ -85,6 +86,8 @@ class RtmBot(object):
 			#print inputvec, word
 			self.neuralnet.inputData(inputvec)
 			self.neuralnet.computeOutput()
+			self.errorEvolution.append(abs(self.neuralnet.endError))
+			print self.errorEvolution[-1]
 			answer=""
 			for letter in range(wordLength):
 				answer += self.textProc.vec2char(self.neuralnet.outputLayer_f[letter*wordLength:(letter+1)*wordLength].tolist())
