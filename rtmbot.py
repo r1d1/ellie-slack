@@ -38,7 +38,9 @@ class RtmBot(object):
 	self.errorEvolution=[]
 	now = datetime.datetime.now()
 	self.wordLengthsFile = "log_wordLengths"+str(now.year)+str(now.month)+str(now.day)+str(now.hour)+str(now.minute)+".txt"
+	self.errorFile = "log_errors"+str(now.year)+str(now.month)+str(now.day)+str(now.hour)+str(now.minute)+".txt"
 	print self.wordLengthsFile
+	print self.errorFile
 
     def connect(self):
         """Convenience method that creates Server instance"""
@@ -88,6 +90,8 @@ class RtmBot(object):
 			self.neuralnet.computeOutput()
 			self.errorEvolution.append(abs(self.neuralnet.endError))
 			print self.errorEvolution[-1]
+			with open(self.errorFile, 'a') as of:
+			    of.write(str(self.errorEvolution[-1])+'\n')
 			answer=""
 			for letter in range(wordLength):
 				answer += self.textProc.vec2char(self.neuralnet.outputLayer_f[letter*wordLength:(letter+1)*wordLength].tolist())
