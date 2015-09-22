@@ -19,7 +19,9 @@ from neuralNet import NeuralNet
 import datetime
 
 # Ugly global definition of wordLength
-wordLength = 20
+wordLength = 10
+# 20 keeps error = 10^308
+#wordLength = 20
 
 def dbg(debug_string):
     if debug:
@@ -88,6 +90,7 @@ class RtmBot(object):
 			#print inputvec, word
 			self.neuralnet.inputData(inputvec)
 			self.neuralnet.computeOutput()
+			self.neuralnet.learn()
 			self.errorEvolution.append(abs(self.neuralnet.endError))
 			print self.errorEvolution[-1]
 			with open(self.errorFile, 'a') as of:
