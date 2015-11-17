@@ -24,7 +24,7 @@ print options, args, options.wFile
 
 errorValues = np.loadtxt(options.wFile)
 
-print 'Games played:',len(errorValues)
+print 'Words:',len(errorValues)
 
 fig, ax1 = plt.subplots()
 
