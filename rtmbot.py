@@ -14,8 +14,6 @@ import logging
 from slackclient import SlackClient
 # Erwan addition :
 import numpy as np
-from textProcessing import TextProcessing
-from neuralNet import NeuralNet
 import datetime
 
 # Ugly global definition of wordLength
@@ -32,22 +30,13 @@ class RtmBot(object):
         self.token = token
         self.bot_plugins = []
         self.slack_client = None
-	self.textProc = TextProcessing()
-	self.layerLength = self.textProc.maxChar-self.textProc.minChar
-	externalSize = self.layerLength*wordLength
-	self.neuralnet = NeuralNet(externalSize, externalSize, externalSize / 2 )
-	self.wordLengths = []
-	self.errorEvolution=[]
 	now = datetime.datetime.now()
-	self.wordLengthsFile = "log_wordLengths"+str(now.year)+str(now.month)+str(now.day)+str(now.hour)+str(now.minute)+".txt"
-	self.errorFile = "log_errors"+str(now.year)+str(now.month)+str(now.day)+str(now.hour)+str(now.minute)+".txt"
-	print self.wordLengthsFile
-	print self.errorFile
 
     def connect(self):
         """Convenience method that creates Server instance"""
         self.slack_client = SlackClient(self.token)
         self.slack_client.rtm_connect()
+
     def start(self):
         self.connect()
         self.load_plugins()
@@ -57,49 +46,18 @@ class RtmBot(object):
             self.crons()
             self.output()
             time.sleep(.1)
+
     def input(self, data):
     	#print "Read something :",data
         if "type" in data:
+	    print "==Type of event", data["type"]
             function_name = "process_" + data["type"]
             dbg("got {}".format(function_name))
             for plugin in self.bot_plugins:
                 plugin.register_jobs()
                 plugin.do(function_name, data)
-	    if data['type'] == 'message' and ("text" in data) and ("user" in data):
-	    	print data['user'],":",data['text']
-		# Process input for NN
-		# For now, just printing the active inputs :
-		for char in data['text']:
-			print self.textProc.char2val(char),
-		print ""
-		for word in data['text'].split():
-			# Build array input
-			inputvec = [0.0 for i in range(len(self.neuralnet.inputLayer))]
-			counter = 0
-			for letter in word:
-				try:
-					inputvec[counter*self.layerLength + self.textProc.char2val(letter)] = 1.0
-				except IndexError:
-					print "Didn't get "+letter
-				counter += 1
-			self.wordLengths.append(len(word))
-			with open(self.wordLengthsFile, 'a') as of:
-			    of.write(str(len(word))+'\n')
-			# Send to network :
-			print word
-			#print inputvec, word
-			self.neuralnet.inputData(inputvec)
-			self.neuralnet.computeOutput()
-			self.neuralnet.learn()
-			self.errorEvolution.append(abs(self.neuralnet.endError))
-			print self.errorEvolution[-1]
-			with open(self.errorFile, 'a') as of:
-			    of.write(str(self.errorEvolution[-1])+'\n')
-			answer=""
-			for letter in range(wordLength):
-				answer += self.textProc.vec2char(self.neuralnet.outputLayer_f[letter*wordLength:(letter+1)*wordLength].tolist())
-			# Generate answer (which is way more tricky)
-			print answer
+	   # if data['type'] == 'message' and ("text" in data) and ("user" in data):
+	   # 	print data['user'],":",data['text']
 
     def output(self):
         for plugin in self.bot_plugins:
@@ -113,13 +71,16 @@ class RtmBot(object):
                     message = output[1].encode('ascii','ignore')
 		    # Erwan : Probabilistic output :
 		    probOfSpeech=np.random.rand()
-		    if probOfSpeech < 0.01:
+		#    if probOfSpeech < 0.01:
+		    if probOfSpeech < 1.0:
 		    	print probOfSpeech
 		    	channel.send_message("{}".format(message))
                     limiter = True
+
     def crons(self):
         for plugin in self.bot_plugins:
             plugin.do_jobs()
+
     def load_plugins(self):
         for plugin in glob.glob(directory+'/plugins/*'):
             sys.path.insert(0, plugin)
@@ -129,12 +90,12 @@ class RtmBot(object):
             name = plugin.split('/')[-1][:-3]
 	    print "Plugin loaded:",name
 #            try:
-            self.bot_plugins.append(Plugin(name))
+            self.bot_plugins.append(Plugin(name, hook_to_client=self.slack_client))
 #            except:
 #                print "error loading plugin %s" % name
 
 class Plugin(object):
-    def __init__(self, name, plugin_config={}):
+    def __init__(self, name, plugin_config={}, hook_to_client=None):
         self.name = name
         self.jobs = []
         self.module = __import__(name)
@@ -144,15 +105,21 @@ class Plugin(object):
             logging.info("config found for: " + name)
             self.module.config = config[name]
         if 'setup' in dir(self.module):
-            self.module.setup()
+            if hook_to_client == None:
+		self.module.setup()
+	    else:
+		self.module.setup(hook_to_client)
+
     def register_jobs(self):
         if 'crontable' in dir(self.module):
             for interval, function in self.module.crontable:
+		print interval, function
                 self.jobs.append(Job(interval, eval("self.module."+function)))
             logging.info(self.module.crontable)
             self.module.crontable = []
         else:
             self.module.crontable = []
+
     def do(self, function_name, data):
         if function_name in dir(self.module):
             #this makes the plugin fail with stack trace in debug mode
@@ -185,14 +152,18 @@ class Plugin(object):
         return output
 
 class Job(object):
+
     def __init__(self, interval, function):
         self.function = function
         self.interval = interval
         self.lastrun = 0
+
     def __str__(self):
         return "{} {} {}".format(self.function, self.interval, self.lastrun)
+
     def __repr__(self):
         return self.__str__()
+
     def check(self):
         if self.lastrun + self.interval < time.time():
             if not debug:
